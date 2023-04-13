@@ -1,0 +1,79 @@
+service: notes-api
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  profile: default
+  region : us-east-1
+  stage  : dev
+  
+plugins:
+   - serverless-iam-roles-per-function
+functions:
+  createNotes:
+    handler: index.createNotes
+    environment:
+      NOTES_TABLE_NAME : !Ref notesTable
+    iamRoleStatements:
+      - Effect: Allow
+        Action: 
+          - dynamodb:PutItem
+        Resource: !GetAtt notesTable.Arn
+    events:
+      - httpApi:
+          path: /
+          method: post
+  updateNotes:
+    handler: index.updateNotes
+    environment:
+      NOTES_TABLE_NAME : !Ref notesTable
+    iamRoleStatements:
+      - Effect: Allow
+        Action: 
+          - dynamodb:updateItem
+        Resource: !GetAtt notesTable.Arn
+    events:
+      - httpApi:
+          path: /notes/{id}
+          method: put
+  deleteNotes:
+    handler: index.deleteNotes
+    environment:
+      NOTES_TABLE_NAME : !Ref notesTable
+    iamRoleStatements:
+      - Effect: Allow
+        Action: 
+          - dynamodb:DeleteItem
+        Resource: !GetAtt notesTable.Arn
+    events:
+      - httpApi:
+          path: /notes/{id}
+          method: delete
+  getAllNotes:
+    handler: index.getAllNotes
+    environment:
+      NOTES_TABLE_NAME : !Ref notesTable
+    iamRoleStatements:
+      - Effect: Allow
+        Action: 
+          - dynamodb:Scan
+        Resource: !GetAtt notesTable.Arn
+    events:
+      - httpApi:
+          path: /notes
+          method: get
+
+resources: 
+ Resources:
+   notesTable:
+     Type: AWS::DynamoDB::Table
+     Properties:
+       TableName: notes
+       BillingMode: PAY_PER_REQUEST
+       AttributeDefinitions:
+         - AttributeName: notesId
+           AttributeType: S
+       KeySchema:
+         - AttributeName: notesId
+           KeyType: HASH
